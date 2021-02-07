@@ -7,32 +7,48 @@
 
 import SwiftUI
 import AVKit
+import Alamofire
+import SwiftyJSON
 
 struct ContentView: View {
-    //Variables
-    @State var player = AVPlayer(url:URL(string: "https://wolverine.raywenderlich.com/content/ios/tutorials/video_streaming/foxVillage.mp4")!)
+//Variables
+    let url = "http://localhost:4000/videos"
+    @State var player = AVPlayer(url:URL(string:"https://d140vvwqovffrf.cloudfront.net/media/5e87b9a811599/hls/index.m3u8")!)
+    
     @State var isplaying = false
     @State var showcontrols = false
     
-    var body: some View {
+//Create object to append data to jsondata
+    @ObservedObject var obs = values()
+    
 //View for Player & Content
+    var body: some View {
         VStack{
+            
             ZStack{
                 VideoPlayer(player: $player)
                 if self.showcontrols{
                     Controls(player: self.$player, isplaying: self.$isplaying, pannel: self.$showcontrols)
                 }
             }
-            .frame(height: UIScreen.main.bounds.height/3.5)
+            .frame(height: UIScreen.main.bounds.height/3)
             .onTapGesture {
                 self.showcontrols = true
             }
             
             GeometryReader{geo in
                 VStack(){
+                    
+//ScrollView for Description
                     ScrollView(.vertical){
-                    Text("Test Text").foregroundColor(.white)
-                    }.frame(width: geo.size.width, height: geo.size.height, alignment: .center)
+                        Text("Title").foregroundColor(.white).bold()
+                        Spacer()
+                        Text("Author").foregroundColor(.white).bold()
+                        Spacer()
+                        Text(obs.jsondata.description).foregroundColor(.white)
+                            
+                   
+                    }.frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             }
             }
             
@@ -64,6 +80,7 @@ struct Controls : View{
 //Previous Button
                 Button(action: {
                     
+//To go to previous video
                 }){
                     Image(uiImage: UIImage(named: "previous")!).font(.title)
                         .foregroundColor(.white)
@@ -90,9 +107,10 @@ struct Controls : View{
                 }
                 
                 Spacer()
-                //Next Button
+//Next Button
                 Button(action: {
                     
+//To go to next video
                 }){
                     Image(uiImage: UIImage(named: "next")!).font(.title)
                         .foregroundColor(.white)
@@ -127,4 +145,25 @@ struct VideoPlayer : UIViewControllerRepresentable {
         
         
     }
+}
+//JSON and Alimofire code to parse data
+class values: ObservableObject{
+    @Published var jsondata = [initialize]()
+    init(){
+        Alamofire.request("http://localhost:4000/videos").responseData{
+            (data) in
+            let json = try! JSON(data:data.data!)
+            for i in json{
+                print(i.1["description"])
+                
+                self.jsondata.append(initialize(id: i.1["id"].intValue, description: i.1["description"].stringValue))
+            }
+        }
+    }
+}
+
+//Structure for recieved data
+struct initialize: Identifiable, Decodable{
+    var id: Int
+    var description: String
 }
